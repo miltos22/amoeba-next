@@ -1,0 +1,10 @@
+[project]
+name = "amoeba"
+version = "0.1.0"
+description = "Amoeba Next stage-0 world, body and feelings"
+requires-python = ">=3.14"
+dependencies = ["mujoco>=3.0", "numpy>=2.0"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["slow: long-running test; set AMOEBA_LONG=1 to run"]
