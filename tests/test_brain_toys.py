@@ -1,4 +1,4 @@
-"""Two calibration toys, no world needed (brief DO 5).
+"""Two calibration toys, no world needed (design DO 5).
 
 Tracking toy: x in [-1, 1] moves by 0.1 * a (clipped), every 200 decisions
 x jumps to a random place, reward = -|x|.  The learner must hold the mean

@@ -4,7 +4,7 @@ Run from the worktree root with PYTHONPATH pointing at it:
 
     .venv/bin/python tests/data/make_regression_default.py
 
-The run reproduced here is the one the W21 brief fixes: every 0.1 s write
+The run reproduced here is fixed by the design: every 0.1 s write
 the targets ``2.0 * sin(0.7 * t + 0.9 * j)`` (target index j, clipped to
 the item limits) and advance 0.1 s, for 300 s.  Every reading at every
 step and the energy are stored as float64.  The script is kept beside the

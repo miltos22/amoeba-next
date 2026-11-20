@@ -1,4 +1,4 @@
-"""W23 grid driver: cell list, cost estimate, resumable 8-process runner."""
+"""Grid driver: cell list, cost estimate, resumable 8-process runner."""
 
 import argparse
 import hashlib
@@ -15,7 +15,7 @@ sys.path.insert(0, HERE)
 import toy  # noqa: E402
 
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
-D = os.path.join(ROOT, "design_notes")
+D = os.path.join(ROOT, "runs")
 OUT = os.path.join(HERE, "out", "cells.jsonl")
 LOGS = os.path.join(D, "logs")
 COSTFILE = os.path.join(D, "cost_estimate.txt")
@@ -133,7 +133,7 @@ def cost_mode():
     est_par = total / rate_par
     cut = est_par > 3.0 * 3600.0
     txt = []
-    txt.append("COST ESTIMATE (W23 grid)")
+    txt.append("COST ESTIMATE (grid)")
     txt.append("measured cells: L2 kappa 1.0 F2 rho 4, dt 0.1, 16 seeds, 400 choices")
     for T, n, w, rt in rows:
         txt.append("  T=%g s: n_steps=%d wall=%.3f s rate=%.1f steps/s" % (T, n, w, rt))

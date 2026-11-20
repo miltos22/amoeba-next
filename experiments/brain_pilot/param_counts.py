@@ -1,4 +1,4 @@
-"""Parameter counts per network from the arrays themselves (brief DO 9)."""
+"""Parameter counts per network from the arrays themselves (design DO 9)."""
 
 from __future__ import annotations
 

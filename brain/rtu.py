@@ -6,8 +6,7 @@ matrix sensitivity ``E = dh/dW_re`` and the vector sensitivities
 ``ea = dh/da``, ``eb = dh/db`` at the same parameters, so any head can
 turn its gradient into recurrent parameter gradients.
 
-Section 4.2 of design_notes/brief.md defines the
-mathematics; ``input_gain`` selects the zero-order-hold gain ("zoh",
+Section 4.2 of the design defines the mathematics; ``input_gain`` selects the zero-order-hold gain ("zoh",
 exact for a piecewise-constant input) or the paper's per-step gain
 ("paper", exact only at dt = 1 s against the published unit).
 """

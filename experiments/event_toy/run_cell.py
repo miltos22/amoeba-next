@@ -1,4 +1,4 @@
-"""Run one cell and print one JSON object on stdout (brief 7.5)."""
+"""Run one cell and print one JSON object on stdout (design 7.5)."""
 
 import argparse
 import json
@@ -50,6 +50,7 @@ def main():
     res["numpy"] = np.__version__
     res["cell_id"] = toy.cell_id(res)
     res.pop("events", None)
+    res.pop("p_rec", None)
     sys.stdout.write(json.dumps(res) + "\n")
 
 

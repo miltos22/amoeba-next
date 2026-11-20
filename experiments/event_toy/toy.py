@@ -1,8 +1,8 @@
-"""Event-stream toy (W23): one unbroken stream, four learners, F1/F2 features.
+"""Event-stream toy: one unbroken stream, four learners, F1/F2 features.
 
-Self-contained numpy.  See design_notes/brief.md sections 2-5.
+Self-contained numpy. See sections 2-5 of the design.
 
-Update order inside one step t (brief 4.6), identical for all learners:
+Update order inside one step t (design 4.6), identical for all learners:
   1. read x_t and the reward r_t delivered at step t; if t is a choice step
      p = sigmoid(theta), sample a, g_t = a - p, else g_t = 0.
   2. V_t = w . x_t with the weights as they are now.
@@ -14,7 +14,7 @@ Update order inside one step t (brief 4.6), identical for all learners:
   6. F2 only: update the memories with step t's events (so the choice made at
      step t appears in x from step t+1).
 
-Bounded step (brief 4.5), applied separately to each trace vector:
+Bounded step (design 4.5), applied separately to each trace vector:
   for param += alpha * delta * z, let m = alpha * 2.0 * max(|delta|,1) * sum|z|;
   if m > 1 use alpha/m in place of alpha, else alpha.
 """
@@ -64,7 +64,7 @@ def _poisson_indices(rng, n_steps, p, chunk=8192):
 
 
 class Stream:
-    """The shared stream of brief section 2.
+    """The shared stream of design section 2.
 
     Everything is generated on the 0.1 s coarse grid; at dt = 0.05 every coarse
     step index is doubled (same stream, twice the resolution).
@@ -117,7 +117,7 @@ class Stream:
 
         self.choice_steps = choice_c * M  # (ns, n_choices), fine steps
         self.n_steps = int(self.choice_steps[:, -1].max()) + 1
-        sentinel = np.int64(self.n_steps + 2)
+        sentinel = np.int64(BIG)  # never matches a step, also beyond a test tail
 
         maxn = max(len(x) for k in range(K) for x in dist[k]) + 1
         self.dist_t = np.full((K, ns, maxn), sentinel, dtype=np.int64)
@@ -155,7 +155,7 @@ class Stream:
 def _nstar(prow, sign, n_choices):
     """Smallest 1-based k with mean(p_k..p_{k+19}) >= 0.9 (sign +1) or <= 0.1."""
     if not np.all(np.isfinite(prow)):
-        return 401
+        return n_choices + 1
     cs = np.concatenate(([0.0], np.cumsum(prow)))
     w = (cs[20:] - cs[:-20]) / 20.0
     if sign > 0:
@@ -164,13 +164,15 @@ def _nstar(prow, sign, n_choices):
         hit = np.nonzero(w <= 0.1)[0]
     if len(hit):
         return int(hit[0] + 1)
-    return 401
+    return n_choices + 1
 
 
 def run_cell(learner, features, rho, T, sign=1, background=True, contingent=True,
              dt=0.1, alpha_p=0.1, alpha_v=0.02, kappa=1.0, n_choices=400,
              seeds=range(NS), I=None, record_events=False, max_steps=None,
-             force_action=None):
+             force_action=None, tau_r=None, cv=None, mu_c=0.5,
+             _force_mu_new=False, m=10.0, eta_max=0.2, beta=4.0,
+             combo="max", _rb_off=False, _debug=False, _tail_steps=0):
     """Run one cell (one learner/features/stream configuration, 16 seeds).
 
     Returns a dict of results (JSON-serialisable except numpy scalars, which are
@@ -235,6 +237,10 @@ def run_cell(learner, features, rho, T, sign=1, background=True, contingent=True
         Zv = np.zeros((H, ns, D))
         Zp = np.zeros((H, ns))
         theta = np.zeros(ns)
+        rbar = np.zeros(ns)            # one running average, shared by all heads
+        alpha_i = (cv * dt / HORIZONS).reshape(H, 1) if cv is not None else None
+        bch = np.zeros(H)              # bound-active counts per head
+        contrib = np.zeros((H, ns))    # per-head policy contributions
     elif learner == "L3":
         decays = np.exp(-dt / HORIZONS)
         w = np.zeros((ns, D))
@@ -242,6 +248,17 @@ def run_cell(learner, features, rho, T, sign=1, background=True, contingent=True
         Zp = np.zeros((H, ns))
         theta = np.zeros(ns)
         rbar = np.zeros(ns)
+    elif learner == "L4":
+        assert features == "F1", "L4 uses F1 only"
+        gammas = np.exp(-dt / HORIZONS)
+        Q = np.zeros((H, ns, 2))
+        E = np.zeros((H, ns, 2))
+        rb = np.zeros((H, ns))
+        t_last = np.full(ns, -1, dtype=np.int64)
+        cap_count = np.zeros(H)
+        cap_choices = 0
+        eta_last = np.zeros((H, ns))
+        gap_last = np.zeros(ns)
     else:
         raise ValueError(learner)
 
@@ -255,6 +272,8 @@ def run_cell(learner, features, rho, T, sign=1, background=True, contingent=True
     n_steps = stream.n_steps
     if max_steps is not None:
         n_steps = min(n_steps, int(max_steps))
+    if _tail_steps:  # test only: keep stepping so pending consequences are read
+        n_steps += int(_tail_steps)
 
     rec = {"dist": [[] for _ in range(K)], "bg": []} if record_events else None
 
@@ -293,13 +312,23 @@ def run_cell(learner, features, rho, T, sign=1, background=True, contingent=True
 
         if fire.any():
             idxs = np.nonzero(fire)[0]
-            p = sigmoid(theta)
+            if learner == "L4":
+                Delta_now = Q[:, :, 1] - Q[:, :, 0]
+                if combo == "max":
+                    hsel = np.argmax(np.abs(Delta_now), axis=0)
+                    d_now = Delta_now[hsel, np.arange(ns)]
+                else:
+                    d_now = Delta_now.mean(0)
+                p = sigmoid(beta * d_now)
+            else:
+                p = sigmoid(theta)
             if force_action is None:
                 for i in idxs:
                     a[i] = 1.0 if rngs_a[i].random() < p[i] else 0.0
             else:
                 a[idxs] = float(force_action)
-            g[idxs] = a[idxs] - p[idxs]
+            if learner != "L4":
+                g[idxs] = a[idxs] - p[idxs]
             p_rec[idxs, cptr[idxs]] = p[idxs]
             cptr[idxs] += 1
             nxt = cptr[idxs]
@@ -314,15 +343,43 @@ def run_cell(learner, features, rho, T, sign=1, background=True, contingent=True
                 sched = idxs
             if len(sched):
                 buf[sched, (t + off) % L] += signf
+            if learner == "L4":
+                # elapsed-time weight and the Q/E state update (design step 2.4-2.5)
+                nf = len(idxs)
+                el = np.where(t_last[idxs] < 0, np.inf,
+                              (t - t_last[idxs]) * dt)
+                raw = el[None, :] / (m * HORIZONS)[:, None]
+                eta_f = np.minimum(eta_max, raw)
+                cap_count += (raw > eta_max).sum(1)
+                cap_choices += nf
+                onehot = np.zeros((nf, 2))
+                onehot[np.arange(nf), a[idxs].astype(np.int64)] = 1.0
+                fac = 1.0 - eta_f[:, :, None] * onehot[None, :, :]
+                Q[:, idxs, :] = Q[:, idxs, :] * fac
+                E[:, idxs, :] = (E[:, idxs, :]
+                                 + eta_f[:, :, None] * onehot[None, :, :])
+                t_last[idxs] = t
+                eta_last[:, idxs] = eta_f
+                gap_last[idxs] = el
 
         # ---- 2. V_t ----------------------------------------------------
-        if learner in ("L1", "L3"):
+        if learner == "L4":
+            pass
+        elif learner in ("L1", "L3"):
             V = np.einsum("nd,nd->n", w, x)
         else:
             V = np.einsum("hnd,nd->hn", W, x)
 
         # ---- 3. updates with traces as they stand ----------------------
-        if t > 0:
+        if learner == "L4":
+            # action-outcome averages; reward of step t is read here, after
+            # the choice update of step 2, so a same-step reward is credited
+            rc = r[None, :] - rb
+            Q += E * rc[:, :, None]
+            E *= gammas[:, None, None]
+            if not _rb_off:
+                rb += (dt / (m * HORIZONS))[:, None] * (r[None, :] - rb)
+        if learner != "L4" and t > 0:
             if learner == "L1":
                 delta = r + gamma * V - Vprev
                 mx = np.maximum(np.abs(delta), 1.0)
@@ -339,20 +396,44 @@ def run_cell(learner, features, rho, T, sign=1, background=True, contingent=True
                 bound_p += int(active.sum())
                 tot_p += ns
             elif learner == "L2":
-                delta = r[None, :] + gammas[:, None] * V - Vprev
+                if tau_r is None:
+                    delta = r[None, :] + gammas[:, None] * V - Vprev
+                else:
+                    delta = (r - rbar)[None, :] + gammas[:, None] * V - Vprev
                 mx = np.maximum(np.abs(delta), 1.0)
-                mval = alpha_vp * 2.0 * mx * Zv.sum(2)
-                active = mval > 1.0
-                ae = np.where(active, alpha_vp / mval, alpha_vp)
+                if mu_c == 0.5 and not _force_mu_new:
+                    # old bounded step; bit-identical to the earlier code when cv is None
+                    if cv is None:
+                        mval = alpha_vp * 2.0 * mx * Zv.sum(2)
+                        active = mval > 1.0
+                        ae = np.where(active, alpha_vp / mval, alpha_vp)
+                    else:
+                        mval = alpha_i * 2.0 * mx * Zv.sum(2)
+                        active = mval > 1.0
+                        ae = np.where(active, alpha_i / mval, alpha_i)
+                else:
+                    s = mx * Zv.sum(2)
+                    if cv is None:
+                        mval = alpha_vp * s
+                        active = mval > mu_c
+                        ae = np.where(active, mu_c / s, alpha_vp)
+                    else:
+                        mval = alpha_i * s
+                        active = mval > mu_c
+                        ae = np.where(active, mu_c / s, alpha_i)
                 W += (ae * delta)[:, :, None] * Zv
                 bound_c += int(active.sum())
+                bch += active.sum(1)
                 tot_c += H * ns
                 mval = alpha_p * 2.0 * mx * np.abs(Zp)
                 active = mval > 1.0
                 aep = np.where(active, alpha_p / mval, alpha_p)
                 theta += (aep * delta * Zp).sum(0) / H
+                contrib += (aep * delta * Zp) / H
                 bound_p += int(active.sum())
                 tot_p += H * ns
+                if tau_r is not None:
+                    rbar += (dt / tau_r) * (r - rbar)
             else:  # L3
                 delta = r - rbar + V - Vprev
                 mx = np.maximum(np.abs(delta), 1.0)
@@ -383,7 +464,7 @@ def run_cell(learner, features, rho, T, sign=1, background=True, contingent=True
             Zv += x[None, :, :]
             Zp *= decays[:, None]
             Zp += g[None, :]
-        else:
+        elif learner == "L3":
             Zv *= decays[:, None, None]
             Zv += x[None, :, :]
             Zp *= decays[:, None]
@@ -395,7 +476,7 @@ def run_cell(learner, features, rho, T, sign=1, background=True, contingent=True
         # ---- 5. V_prev with the UPDATED weights ------------------------
         if learner in ("L1", "L3"):
             Vprev = np.einsum("nd,nd->n", w, x)
-        else:
+        elif learner == "L2":
             Vprev = np.einsum("hnd,nd->hn", W, x)
 
         # ---- 6. F2 memories with step t's events -----------------------
@@ -407,7 +488,9 @@ def run_cell(learner, features, rho, T, sign=1, background=True, contingent=True
             np.maximum(m, ev[:, :, None], out=m)
 
         if t % 4096 == 0:
-            if learner == "L2":
+            if learner == "L4":
+                diverged |= ~np.isfinite(Q).all(axis=(0, 2))
+            elif learner == "L2":
                 diverged |= ~(np.isfinite(theta) &
                               np.isfinite(W).all(axis=(0, 2)))
             else:
@@ -425,12 +508,15 @@ def run_cell(learner, features, rho, T, sign=1, background=True, contingent=True
         bad = (not np.all(np.isfinite(row)))
         if learner == "L2":
             bad = bad or (not np.all(np.isfinite(W[:, si, :])))
+        elif learner == "L4":
+            bad = bad or (not np.all(np.isfinite(Q[:, si, :])))
         else:
             bad = bad or (not np.all(np.isfinite(w[si])))
-        bad = bad or (not np.isfinite(theta[si]))
+        if learner != "L4":
+            bad = bad or (not np.isfinite(theta[si]))
         if bad:
             diverged[si] = True
-        N_star[si] = 401 if diverged[si] else _nstar(row, sign, n_choices)
+        N_star[si] = (n_choices + 1) if diverged[si] else _nstar(row, sign, n_choices)
         seg = row[np.isfinite(row)]
         if len(seg) >= 20:
             final_p[si] = float(np.mean(seg[-20:]))
@@ -457,6 +543,9 @@ def run_cell(learner, features, rho, T, sign=1, background=True, contingent=True
         "alpha_v": float(alpha_v),
         "I": float(stream.I),
         "n_choices": int(n_choices),
+        "tau_r": (None if tau_r is None else float(tau_r)),
+        "cv": (None if cv is None else float(cv)),
+        "mu_c": float(mu_c),
         "seeds": [int(s) for s in seeds],
         "N_star": n_star_list,
         "final_p": [float(v) for v in final_p],
@@ -472,12 +561,52 @@ def run_cell(learner, features, rho, T, sign=1, background=True, contingent=True
         "n_steps": int(n_steps),
         "stream": stream.count_summary(),
     }
+    if learner == "L4":
+        out["m"] = float(m)
+        out["eta_max"] = float(eta_max)
+        out["beta"] = float(beta)
+        out["combo"] = combo
+        out["delta_end"] = [[float(Q[i, si, 1] - Q[i, si, 0])
+                             for si in range(ns)] for i in range(H)]
+        out["cap_frac_head"] = [float(v) for v in
+                                (cap_count / cap_choices if cap_choices
+                                 else np.zeros(H))]
+        out["rb_end"] = [[float(v) for v in rb[i]] for i in range(H)]
+        if _debug:
+            out["q_end"] = [[[float(v) for v in Q[i, si, :]]
+                             for si in range(ns)] for i in range(H)]
+            out["eta_last"] = [[float(v) for v in eta_last[i]]
+                               for i in range(H)]
+            out["gap_last"] = [float(v) for v in gap_last]
+    if learner in ("L2", "L4"):
+        out["n_high"] = int(np.sum(final_p >= 0.9))
+        out["n_low"] = int(np.sum(final_p <= 0.1))
+        stuck = 0
+        for si in range(ns):
+            tail = p_rec[si][-20:]
+            if np.all(tail >= 0.999) or np.all(tail <= 0.001):
+                stuck += 1
+        out["n_stuck"] = stuck
+        out["p_rec"] = p_rec
+    if learner == "L2":
+        den = float(tot_c) / H if tot_c else 0.0
+        out["bound_frac_head"] = [float(v) for v in
+                                  (bch / den if den else np.zeros(H))]
+        out["head_contrib"] = [[float(v) for v in contrib[i]] for i in range(H)]
+        out["rbar_end"] = [float(v) for v in rbar]
+        out["theta_end"] = [float(v) for v in theta]
     if rec is not None:
         out["events"] = rec
     return out
 
 
 def cell_id(p):
+    if p["learner"] == "L4":
+        return ("L4|m=%s|eta=%s|beta=%s|combo=%s|rho=%s|T=%s|sign=%s|bg=%d"
+                "|cont=%d|dt=%s|n=%s"
+                % (p["m"], p["eta_max"], p["beta"], p["combo"], p["rho"],
+                   p["T"], p["sign"], int(p["background"]),
+                   int(p["contingent"]), p["dt"], p["n_choices"]))
     return "|".join([
         str(p["learner"]),
         "k=%s" % ("NA" if (p["learner"] != "L2" or p.get("kappa") is None)
@@ -491,5 +620,8 @@ def cell_id(p):
         "dt=%s" % p["dt"],
         "ap=%s" % p["alpha_p"],
         "av=%s" % p["alpha_v"],
+        "tr=%s" % ("NA" if p.get("tau_r") is None else p["tau_r"]),
+        "cv=%s" % ("NA" if p.get("cv") is None else p["cv"]),
+        "mu=%s" % p.get("mu_c", 0.5),
         "n=%s" % p["n_choices"],
     ])

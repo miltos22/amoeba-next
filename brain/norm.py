@@ -1,4 +1,4 @@
-"""Running normalisers (brief 4.4.1 and 4.4.2).
+"""Running normalisers (design 4.4.1 and 4.4.2).
 
 TrackMeanVar is Welford's single-pass estimator exactly as written in the
 paper's algorithm: n += 1; mu_new = mu + (x - mu) / n; p += (x - mu)(x -

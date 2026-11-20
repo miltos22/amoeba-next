@@ -1,4 +1,4 @@
-"""Known-answer checks for the heads (brief DO 3).
+"""Known-answer checks for the heads (design DO 3).
 
 The hand-written backward pass of the value head, and of log pi and the
 entropy H of the policy head, against torch autograd, for n = 0 and

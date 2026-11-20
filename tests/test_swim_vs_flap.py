@@ -4,7 +4,7 @@ Under tests/ only (no controller lives in amoeba/): a travelling wave
 along the arms and a single-joint back-and-forth flap, same amplitude
 and frequency, 20 world seconds each.  A wave along a chain in a fluid
 is non-reciprocal and must move the body; a reciprocal flap must not
-move it much.  The brief asks for a factor of at least 3.
+move it much. The design asks for a factor of at least 3.
 """
 
 import math

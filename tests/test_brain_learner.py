@@ -1,8 +1,8 @@
-"""Known-answer checks for the learner (brief DO 4).
+"""Known-answer checks for the learner (design DO 4).
 
 1. n = 0: 20 decisions on random observations and rewards with irregular
    dt; after every decision every parameter equals a torch/autograd
-   reference of brief section 4.4 written here, to 1e-9.
+   reference of design section 4.4 written here, to 1e-9.
 2. SparseInit: realised zero share over a network within 0.01 of 0.95,
    every bias zero.
 3. TrackMeanVar equals numpy's mean and unbiased variance on 1000 random

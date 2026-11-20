@@ -2,7 +2,7 @@
 
 One JSON object per line, header first.  The file is line-buffered, so a
 killed process loses at most the row being written (well inside the 10 s
-of world time the brief allows).  The reader returns numpy arrays keyed
+of world time the design allows). The reader returns numpy arrays keyed
 by item name; a body change leaves new names as NaN in earlier rows.
 """
 
@@ -83,6 +83,10 @@ class Recorder:
             "versions": _versions(),
             "platform": platform.platform(),
         }
+        if config.pulse_patches:
+            header["pulse_patch_indices"] = list(
+                range(config.n_patches, config.n_patches + config.pulse_patches)
+            )
         self._file.write(json.dumps({"header": header}, allow_nan=True) + "\n")
         self._file.flush()
 
@@ -98,6 +102,8 @@ class Recorder:
             "read": world.read(),
             "targets": world.targets(),
         }
+        if world.config.fatigue_weight > 0.0:
+            row["fatigue"] = float(world.fatigue)
         interval = world.config.food_record_interval_s
         if self._last_food_time is None or time - self._last_food_time >= interval - 1e-12:
             row["food"] = {
@@ -149,8 +155,14 @@ def read_record(path: str | Path, t0: float | None = None, t1: float | None = No
     out["heading"] = np.array([row["heading"] for row in rows], dtype=float)
     out.update(_empty_arrays(rows, "read"))
     out.update(_empty_arrays(rows, "targets"))
+    if any("fatigue" in row for row in rows):
+        out["fatigue"] = np.array(
+            [row.get("fatigue", np.nan) for row in rows], dtype=float
+        )
 
-    n_patches = int(header["config"].get("n_patches", 0))
+    n_patches = int(header["config"].get("n_patches", 0)) + int(
+        header["config"].get("pulse_patches", 0)
+    )
     amounts = np.full((len(rows), n_patches), np.nan)
     centres = np.full((len(rows), n_patches, 2), np.nan)
     for i, row in enumerate(rows):

@@ -268,24 +268,24 @@ def selftest() -> int:
     lean = run_life(_cli_args(preset="lean", behaviour="still", life_s=1200.0, window_s=600.0))
     reach = [r["t"] for r in lean["records"] if r["energy"] == 0.0]
     print(f"  first_zero_energy_time={reach[0]!r}" if reach else "  first_zero_energy_time=None")
-    w0, w1 = lean["windows"][0], lean["windows"][1]
-    print(f"  window0.food_eaten={w0['food_eaten']!r}")
-    print(f"  window0.path_m={w0['path_m']!r}")
-    print(f"  window1.mean_abs_need={w1['mean_abs_need']!r}")
-    print(f"  window1.frac_energy_zero={w1['frac_energy_zero']!r}")
-    print(f"  window1.mean_energy={w1['mean_energy']!r} min={w1['min_energy']!r} max={w1['max_energy']!r}")
+    win0, win1 = lean["windows"][0], lean["windows"][1]
+    print(f"  window0.food_eaten={win0['food_eaten']!r}")
+    print(f"  window0.path_m={win0['path_m']!r}")
+    print(f"  window1.mean_abs_need={win1['mean_abs_need']!r}")
+    print(f"  window1.frac_energy_zero={win1['frac_energy_zero']!r}")
+    print(f"  window1.mean_energy={win1['mean_energy']!r} min={win1['min_energy']!r} max={win1['max_energy']!r}")
     if not reach:
         _fail(failures, "lean: energy never reached 0.0")
     elif abs(reach[0] - 600.0) > 1.5:
         _fail(failures, f"lean: energy reached 0.0 at {reach[0]!r}, wanted 600 s within 1.5 s")
-    if abs(w1["mean_abs_need"] - 0.8) > 1e-9:
-        _fail(failures, f"lean: window1 mean_abs_need {w1['mean_abs_need']!r} != 0.8 within 1e-9")
-    if not w1["frac_energy_zero"] >= 0.99:
-        _fail(failures, f"lean: window1 frac_energy_zero {w1['frac_energy_zero']!r} < 0.99")
-    if w0["food_eaten"] != 0.0:
-        _fail(failures, f"lean: window0 food_eaten {w0['food_eaten']!r} != 0.0")
-    if not w0["path_m"] < 1e-6:
-        _fail(failures, f"lean: window0 path_m {w0['path_m']!r} >= 1e-6")
+    if abs(win1["mean_abs_need"] - 0.8) > 1e-9:
+        _fail(failures, f"lean: window1 mean_abs_need {win1['mean_abs_need']!r} != 0.8 within 1e-9")
+    if not win1["frac_energy_zero"] >= 0.99:
+        _fail(failures, f"lean: window1 frac_energy_zero {win1['frac_energy_zero']!r} < 0.99")
+    if win0["food_eaten"] != 0.0:
+        _fail(failures, f"lean: window0 food_eaten {win0['food_eaten']!r} != 0.0")
+    if not win0["path_m"] < 1e-6:
+        _fail(failures, f"lean: window0 path_m {win0['path_m']!r} >= 1e-6")
 
     print("selftest 2: still, n_patches=0, rich, life 1200 s")
     rich = run_life(_cli_args(preset="rich", behaviour="still", life_s=1200.0, window_s=600.0))

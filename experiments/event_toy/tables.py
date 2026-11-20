@@ -1,11 +1,11 @@
-"""Build the W23 tables from out/cells.jsonl (never typed by hand)."""
+"""Build the tables from out/cells.jsonl (never typed by hand)."""
 
 import json
 import os
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, "out", "cells.jsonl")
-D = os.path.abspath(os.path.join(HERE, "..", "..", "design_notes"))
+D = os.path.join(HERE, "runs")
 
 LEARNERS = [("L1", 1.0, "L1"), ("L2", 0.043, "L2 kappa=0.043"),
             ("L2", 1.0, "L2 kappa=1.0"), ("L3", 1.0, "L3")]
@@ -54,7 +54,7 @@ def table(rows, pick, learner, kappa, feats, rhos, ts):
 
 def main():
     rows = load()
-    lines = ["# W23 tables (from cells.jsonl: %d cells)" % len(rows), ""]
+    lines = ["# tables (from cells.jsonl: %d cells)" % len(rows), ""]
 
     def mainpick(r):
         return (r["sign"] == 1 and r["background"] and r["contingent"]

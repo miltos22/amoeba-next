@@ -1,4 +1,4 @@
-"""Selftest items 1-6 of the W23 brief.  Prints every number it asserts."""
+"""Selftest items 1-6. Prints every number it asserts."""
 
 import sys
 import time

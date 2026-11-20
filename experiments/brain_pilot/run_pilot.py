@@ -1,4 +1,4 @@
-"""Pilot lives of the brain in the stage-0 world (brief DO 8).
+"""Pilot lives of the brain in the stage-0 world (design DO 8).
 
     seeds 0, preset lean, 12 patches
     600 s with n = 48

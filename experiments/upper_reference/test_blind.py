@@ -1,4 +1,4 @@
-"""Known-answer checks for the two blind reference arms (W16).
+"""Known-answer checks for the two blind reference arms.
 
   (a) BlindSwimmer gives the same targets in two worlds with different
       food layouts at the same seed: it reads nothing.

@@ -29,7 +29,7 @@ cell; a missing seed is an error, never dropped.
 The t quantile is computed here, with numpy only (scipy is not in the
 venv and nothing is installed): the Student-t CDF is evaluated from the
 regularised incomplete beta function and inverted by bisection.  The
-test asserts the three reference values of the brief to 4 decimals.
+test asserts the three reference values of the design to 4 decimals.
 
     PYTHONPATH=. .venv/bin/python experiments/stage0_test/verdict.py RUN.csv
 """

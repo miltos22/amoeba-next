@@ -228,6 +228,7 @@ class Body:
 
         self.energy = 1.0
         self._strength = -1.0
+        self.fatigue_mult = 1.0
         self.set_energy(initial_energy, force=True)
 
     # -- item construction -------------------------------------------------
@@ -333,6 +334,8 @@ class Body:
         e = 0.0 if e < 0.0 else (1.0 if e > 1.0 else e)
         self.energy = e
         s = strength(e, self.preset, self.weakness)
+        if self.fatigue_mult != 1.0:
+            s = s * self.fatigue_mult
         if force or abs(s - self._strength) > 1e-12:
             self._strength = s
             kp = self.shape.kp

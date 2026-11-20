@@ -3,8 +3,7 @@
 This is a measuring instrument, not part of any organism: nothing under
 amoeba/ or baselines/ may import it.
 
-The wave started from the one measured in
-design_notes/checks/gait_check.py:
+The wave started from the one measured in an earlier gait check:
 
     target(k, j, t) = AMP * sin(2*pi*FREQ*t - j*pi/2 - k*pi/2)
 

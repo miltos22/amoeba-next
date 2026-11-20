@@ -38,7 +38,7 @@ from experiments.upper_reference.gait import _wrap  # noqa: E402
 
 PREFIX = ["taskset", "-c", "0-7", "nice", "-n", "19"]
 DEFAULT_OUTDIR = os.path.join(
-    _ROOT, "dispatch", "2026-11-15", "W09_upper_reference", "out", "selftest"
+    _ROOT, "runs", "selftest"
 )
 
 

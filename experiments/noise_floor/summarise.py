@@ -96,14 +96,14 @@ def main(argv) -> int:
         food = [row["food_eaten"] for row in life_rows]
         path = [row["path_m"] for row in life_rows]
 
-        w1 = []
+        win1 = []
         within_sd = []
         any_zero = 0
         for item in lives:
             windows = item["windows"]
             later = [w["mean_abs_need"] for w in windows if w["window"] >= 1]
             if later:
-                w1.append(sum(later) / len(later))
+                win1.append(sum(later) / len(later))
             if len(windows) >= 2:
                 within_sd.append(_sd([w["mean_abs_need"] for w in windows]))
             zeros = [w["frac_energy_zero"] for w in windows]
@@ -127,8 +127,8 @@ def main(argv) -> int:
                 "food_eaten_sd": _sd(food),
                 "path_m_mean": _mean(path),
                 "path_m_sd": _sd(path),
-                "mean_abs_need_w1_mean": _mean(w1),
-                "mean_abs_need_w1_sd": _sd(w1),
+                "mean_abs_need_w1_mean": _mean(win1),
+                "mean_abs_need_w1_sd": _sd(win1),
                 "within_life_window_sd_mean": _mean([s for s in within_sd if not math.isnan(s)]),
                 "min_energy": min(row["min_energy"] for row in life_rows),
                 "lives_with_any_zero": any_zero,

@@ -22,7 +22,7 @@ import time
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DEFAULT_OUTDIR = os.path.join(
-    _ROOT, "dispatch", "2026-11-15", "W09_upper_reference", "out", "settings"
+    _ROOT, "runs", "settings"
 )
 PREFIX = ["taskset", "-c", "0-7", "nice", "-n", "19"]
 

@@ -1,4 +1,4 @@
-"""Known-answer check of world-time constants (brief DO 6).
+"""Known-answer check of world-time constants (design DO 6).
 
 At dt = ref_s = 0.1 s every converted constant equals the published
 per-step constant; at dt = 0.05 s each follows p = dt / ref_s exactly.

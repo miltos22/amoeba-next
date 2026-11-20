@@ -1,7 +1,7 @@
 """Test 4.2: same held-target sequence at three timesteps; print the differences.
 
 No tolerance is chosen here: the test only asserts finiteness and prints
-the differences, as the brief demands.
+the differences, as the design demands.
 """
 
 import numpy as np

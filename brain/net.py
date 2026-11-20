@@ -3,7 +3,7 @@
 LayerNorm (no learned scale or shift, epsilon from the configuration),
 LeakyReLU, and one Gaussian per actuator item.  The policy network and the
 value network are separate networks, each with its own RTULayer.  Every
-linear layer of one network is filled by SparseInit (brief 4.4.4).
+linear layer of one network is filled by SparseInit (design 4.4.4).
 """
 
 from __future__ import annotations
@@ -18,7 +18,7 @@ LOG_2PI = math.log(2.0 * math.pi)
 
 
 def sparse_init(layers, sparsity: float, rng: np.random.Generator) -> None:
-    """SparseInit (brief 4.4.4) over ``layers`` = [(name, array, fan_in), ...]."""
+    """SparseInit (design 4.4.4) over ``layers`` = [(name, array, fan_in),...]."""
     sizes = [int(arr.size) for _, arr, _ in layers]
     phis = [fin + (int(arr.shape[0]) if arr.ndim > 1 else 1) for _, arr, fin in layers]
     budget = (1.0 - float(sparsity)) * float(sum(sizes))

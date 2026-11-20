@@ -1,6 +1,6 @@
-"""World-time streaming actor-critic with eligibility traces (brief 4.4).
+"""World-time streaming actor-critic with eligibility traces (design 4.4).
 
-One decision, in the order of brief section 4.4.3:
+One decision, in the order of design section 4.4.3:
 
 the policy network's recurrent layer and head are advanced, a_k is sampled;
 the value network's recurrent layer and head are advanced to get v_k; the
@@ -35,7 +35,7 @@ from .norm import ObservationNormalizer, RewardScaler
 
 @dataclass
 class BrainConfig:
-    """Every constant of brief section 4, one object."""
+    """Every constant of design section 4, one object."""
 
     ref_s: float = 0.1
     gamma_ref: float = 0.99

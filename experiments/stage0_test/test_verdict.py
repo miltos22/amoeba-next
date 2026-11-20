@@ -1,8 +1,8 @@
-"""Known-answer checks for late_need.py, verdict.py and power.py (W16).
+"""Known-answer checks for late_need.py, verdict.py and power.py.
 
 Every case is a hand-built CSV (or config) whose answer can be worked out
 on paper; the verdict and power functions are then checked against it.
-The Student-t quantiles of the brief (section 3.6) are asserted to 4
+The Student-t quantiles of the design (section 3.6) are asserted to 4
 decimals, and the power known answers of section 4.12 are checked here.
 
 Run from the Amobea root:

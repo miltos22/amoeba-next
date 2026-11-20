@@ -1,4 +1,4 @@
-"""Known-answer checks for the recurrent layer (brief DO 2).
+"""Known-answer checks for the recurrent layer (design DO 2).
 
 1. At dt = 1 s and gain "paper" the layer equals the paper's four real
    equations written literally here (rtu.tex:281-292).
